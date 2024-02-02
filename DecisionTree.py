@@ -126,9 +126,19 @@ class Tree:
         for child in children:
             sigma += (len(child.labels) / len(labels)) * self.entropy_calc(child.labels)
         return parent_entropy - sigma
+    
+    # Traverse the tree using DFS
+    def traverse(self):
+        def dfs(node):
+            if node is not None:
+                yield node
+                for child in node.children:
+                    yield from dfs(child)
+
+        return dfs(self.root) 
 
 
-class DTreeClassifire:
+class DTreeClassifier:
     # constructor:
     def __init__(self, data, label):
         self.data = data
@@ -177,8 +187,52 @@ class DTreeClassifire:
 
         return (true_predict / len(labels)) * 100
     
+def plot_tree(tree):
 
-classifire = DTreeClassifire(read_feature_train, read_labels_train)        
-labels_predicted = classifire.predict_all(read_feature_test, 3 * len(features_row) // 4)
-accuracy = classifire.accuracy(read_labels_test, labels_predicted)
+    G = nx.DiGraph() # Create a directed graph
+    labels = {} # Create a dictionary to store the labels of the nodes
+    edge_labels = {} # Create a dictionary to store the labels of the edges
+    color_map = [] # Create a list to store the colors of the nodes to differentiate between internal and leaf nodes
+
+    # Traverse the tree using DFS and add the nodes and edges to the graph 
+    for node in tree.traverse():
+        unique_labels, label_counts = np.unique(node.labels, return_counts=True) # Get the unique labels and their counts
+        label_counts_dict = dict(zip(unique_labels, label_counts))
+        
+        # Add the decision node to the graph:
+        if node.feature is not None:
+            labels[node] = f'name: {features_row[node.feature]}\ninfo_gain: {node.info_gain}\n'
+            
+            # Add the label counts to the node label and then set the color
+            for i in range(len(unique_labels)):
+                labels[node] += f'label {unique_labels[i]} : {label_counts_dict.get(i, i)}\n'
+            color_map.append('skyblue')
+
+            # Add the edge to the graph:
+            if node.parent is not None:
+                edge_labels[(node.parent, node)] = node.based_on
+
+        # Add the leaf node to the graph:
+        elif node.value is not None:
+            labels[node] = f'value: {node.value}\ninformation gain: {node.info_gain}\n'
+            
+            for i in range(len(unique_labels)):
+                labels[node] += f'label {unique_labels[i]} : {label_counts_dict.get(i, i)}\n'
+
+            color_map.append('lightgreen')
+
+        # Add the nodes and edges to the graph
+        if node.parent is not None:
+            G.add_edge(node.parent, node)
+
+    # Draw the graph:
+    pos = graphviz_layout(G, prog='dot')
+    plt.figure(figsize=(10, 10))
+    nx.draw(G, pos, labels=labels, with_labels=True, node_size=2000, node_color=color_map, font_size=7)
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red')
+    plt.show()
+
+classifier = DTreeClassifier(read_feature_train, read_labels_train)        
+labels_predicted = classifier.predict_all(read_feature_test, 3 * len(features_row) // 4)
+accuracy = classifier.accuracy(read_labels_test, labels_predicted)
 print(accuracy)
