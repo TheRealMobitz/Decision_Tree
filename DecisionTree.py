@@ -3,7 +3,9 @@ import pandas as pd
 from networkx.drawing.nx_agraph import graphviz_layout
 import networkx as nx
 import matplotlib.pyplot as plt
-
+import math
+import random
+from collections import Counter
 # read the data from the csv files:
 read_feature_train = pd.read_csv("feature_train.csv").values.tolist()
 read_labels_train = pd.read_csv("label_train.csv").values.tolist()
@@ -54,7 +56,7 @@ class Tree:
         then create a decision node:
         '''
 
-        if max(label_counts) / len(labels) < 0.9 and node.level < self.max_depth: 
+        if max(label_counts) / len(labels) < 0.95 and node.level < self.max_depth: 
 
             best_split = self.get_best_split(data, labels) # it's a dictionary taht gets the best feature and it's children
             node.children = best_split["children"] # set children based of best split
@@ -186,7 +188,66 @@ class DTreeClassifier:
                 true_predict += 1
 
         return (true_predict / len(labels)) * 100
-    
+
+class RForestClassifire:
+    def __init__(self, data, label, number_of_estimator, max_depth):
+        self.data = data
+        self.label = label
+        self.number_of_estimator = number_of_estimator
+        max_depth = max_depth
+        self.tree = None
+        self.estimators = []
+        self.build_forest()
+    def build_forest(self):
+        for _ in range(self.number_of_estimator):
+            random_columns = random.sample(range(0, len(features_row) - 1), int(math.sqrt(len(features_row))))
+            temp_data = []  
+            for _ in range(len(self.data)):
+                temp_data.append(self.data[random.randint(0, len(self.data) - 1)])
+            temp_data = [[row[i] for i in random_columns] for row in temp_data]
+            self.tree = Tree(3 * len(features_row) // 4, random_columns)
+            self.tree.create_tree(temp_data, self.label)
+            labels_predicted = self.predict_all(temp_data, len(features_row) // 2)
+            self.estimators.append(labels_predicted)
+        return self.estimators
+
+    def predict(self, data, depth):
+        node = self.tree.root
+        while node.level < depth and node.value is None:
+            feature_index = data[node.feature]
+            found = False
+            for child in node.children:
+                if child.based_on == feature_index:
+                    node = child
+                    found = True
+                    break
+            if not found:
+                return self.tree.get_label_details(node.labels)["majority_label"]
+        if node.value is not None:
+            return node.value
+        else:
+            return self.tree.get_label_details(node.labels)["majority_label"]
+    def predict_all(self, data, depth):
+        results = []
+        for person in data:
+            results.append(self.predict(person, depth))
+        return results
+    def accuracy(self, labels, estimators):
+        transposed_estimators = list(map(list, zip(*estimators)))
+        labels_predicted = []
+        for column in transposed_estimators:
+            counts = Counter(column)
+            most_common_number = max(counts, key=counts.get)
+            labels_predicted.append(most_common_number)
+        true_predict = 0
+        for i in range(len(labels)):
+            if labels[i] == labels_predicted[i]:
+                true_predict += 1
+        return (true_predict/len(labels)) * 100
+
+
+
+
 def plot_tree(tree):
 
     G = nx.DiGraph() # Create a directed graph
@@ -232,7 +293,12 @@ def plot_tree(tree):
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red')
     plt.show()
 
-classifier = DTreeClassifier(read_feature_train, read_labels_train)        
-labels_predicted = classifier.predict_all(read_feature_test, 3 * len(features_row) // 4)
-accuracy = classifier.accuracy(read_labels_test, labels_predicted)
-print(accuracy)
+classifire = DTreeClassifier(read_feature_train, read_labels_train) 
+labels_predicted = classifire.predict_all(read_feature_test, len(features_row) // 2)
+accuracy = classifire.accuracy(read_labels_test, labels_predicted)
+print("accuracy : "+ accuracy)
+
+RForest = RForestClassifire(read_feature_train, read_labels_train, 6, 3)
+estimators = RForest.build_forest()
+accuracy = RForest.accuracy(read_labels_test, estimators)
+print("forest accuracy: " + accuracy)
