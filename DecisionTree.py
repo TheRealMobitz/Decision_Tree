@@ -1,3 +1,5 @@
+# Decison Tree Classifier by M.Mobin.Teymourpour & E.Samiei (4022129, 4012236)
+
 import numpy as np
 import pandas as pd
 from networkx.drawing.nx_agraph import graphviz_layout
@@ -6,6 +8,7 @@ import matplotlib.pyplot as plt
 import math
 import random
 from collections import Counter
+
 # read the data from the csv files:
 read_feature_train = pd.read_csv("feature_train.csv").values.tolist()
 read_labels_train = pd.read_csv("label_train.csv").values.tolist()
@@ -31,11 +34,12 @@ class Node:
         self.value = value
 class Tree:
     # Tree constructor
-    def __init__(self, max_depth = None, features_row = None):
+    def __init__(self, features_row = None):
         self.depth = 0
-        self.max_depth = max_depth
+        self.max_depth = calculate_best_max_depth(read_feature_train, read_labels_train, depth_list_creator(features_row))
         self.root = None
         self.features_row = features_row
+        self.threshold = threshold_setter(read_labels_train)
     
     def get_depth(self):
         return self.depth
@@ -57,7 +61,7 @@ class Tree:
         then create a decision node:
         '''
 
-        if max(label_counts) / len(labels) < 0.95 and node.level < self.max_depth: 
+        if max(label_counts) / len(labels) < self.threshold and node.level < self.max_depth: 
 
             best_split = self.get_best_split(data, labels) # it's a dictionary taht gets the best feature and it's children
             node.children = best_split["children"] # set children based of best split
@@ -147,7 +151,7 @@ class DTreeClassifier:
     def __init__(self, data, label):
         self.data = data
         self.label = label
-        self.tree = Tree(3 * len(read_feature_train[0]) // 4, features_row)
+        self.tree = Tree(features_row)
         self.tree.create_tree(data, label)
 
     # predict the label of a single person
@@ -191,7 +195,7 @@ class DTreeClassifier:
 
         return (true_predict / len(labels)) * 100
 
-class RForestClassifire:
+class RForestClassifier:
     def __init__(self, data, label, number_of_estimator, max_depth):
         self.data = data
         self.label = label
@@ -295,20 +299,71 @@ def plot_tree(tree):
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red')
     plt.show()
 
-<<<<<<< Updated upstream
-classifire = DTreeClassifier(read_feature_train, read_labels_train) 
-labels_predicted = classifire.predict_all(read_feature_test, len(features_row) // 2)
-accuracy = classifire.accuracy(read_labels_test, labels_predicted)
-print("accuracy : "+ accuracy)
+def threshold_setter(labels_list):
+    # Get the unique labels and their counts
+    _, label_counts = np.unique(labels_list, return_counts=True)
 
-RForest = RForestClassifire(read_feature_train, read_labels_train, 6, 3)
+    # Set the threshold based on the maximum label count
+    if max(label_counts) / len(labels_list) < 0.8:
+        return 0.8
+    elif max(label_counts) / len(labels_list) < 0.85:
+        return 0.85
+    elif max(label_counts) / len(labels_list) < 0.9:
+        return 0.9
+    elif max(label_counts) / len(labels_list) < 0.95:
+        return 0.95
+    else:
+        return 0.98
+
+def depth_list_creator(features_row):
+    # Create a list of depth values to be used for the decision tree
+    depth_list = []
+    num = len(features_row)
+
+    # Add the odd numbers from 1 to 3/4 of the number of features
+    for i in range(2, (3 * num // 4) + 1, 2):
+        depth_list.append(i)
+
+    if (3 * num // 4) + 1 not in depth_list:
+        depth_list.append((3 * num // 4) + 1)
+
+    return depth_list
+
+
+def calculate_best_max_depth(data, labels, max_depth_values, validation_ratio=0.2):
+
+    # Initialize the best depth and accuracy
+    best_depth = None
+    best_accuracy = -1
+    
+    # Split the data into training and validation sets
+    validation_size = int(len(data) * validation_ratio)
+    training_data = data[validation_size:]
+    training_labels = labels[validation_size:]
+    validation_data = data[:validation_size]
+    validation_labels = labels[:validation_size]
+    
+    # Calculate the accuracy for each depth value
+    for depth in max_depth_values:
+        
+        dtree = DTreeClassifier(training_data, training_labels, depth)
+
+        predictions = dtree.predict_all(validation_data, depth)
+        accuracy = dtree.accuracy(validation_labels, predictions)
+        
+        if accuracy > best_accuracy:
+            best_accuracy = accuracy
+            best_depth = depth
+    
+    return best_depth
+
+classifier = DTreeClassifier(read_feature_train, read_labels_train) # create a decision tree classifier    
+labels_predicted = classifier.predict_all(read_feature_test, len(features_row) // 2) # predict the labels of the test data
+accuracy = classifier.accuracy(read_labels_test, labels_predicted) # calculate the accuracy of the model
+print(accuracy)
+plot_tree(classifier.tree)
+
+RForest = RForestClassifier(read_feature_train, read_labels_train, 6, 3)
 estimators = RForest.build_forest()
 accuracy = RForest.accuracy(read_labels_test, estimators)
 print("forest accuracy: " + accuracy)
-=======
-classifier = DTreeClassifier(read_feature_train, read_labels_train)        
-labels_predicted = classifier.predict_all(read_feature_test, 3 * len(features_row) // 4)
-accuracy = classifier.accuracy(read_labels_test, labels_predicted)
-print(accuracy)
-plot_tree(classifier.tree)
->>>>>>> Stashed changes
