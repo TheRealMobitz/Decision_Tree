@@ -17,7 +17,7 @@ read_labels_test = [item for sublist in read_labels_test for item in sublist]
 
 
 class Node: 
-    def __init__(self, feature = None, level = None, children = None, info_gain = None, data = None, labels = None, based_on = None, value = None):
+    def __init__(self, feature = None, level = None, children = None, info_gain = None, data = None, labels = None, based_on = None, value = None,  parent = None):
         # for decision node
         self.feature = feature
         self.level = level
@@ -26,6 +26,7 @@ class Node:
         self.data = data if data is not None else []
         self.labels = labels if labels is not None else []
         self.based_on = based_on
+        self.parent = parent
         # for leaf node
         self.value = value
 class Tree:
@@ -66,6 +67,7 @@ class Tree:
             # create a child node for each unique feature value recursively:
             for child in node.children:
                 child.level = node.level + 1
+                child.parent = node
                 if child.level > self.depth:
                     self.depth += 1
                 self.create_tree(child.data, child.labels, child)
@@ -293,6 +295,7 @@ def plot_tree(tree):
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red')
     plt.show()
 
+<<<<<<< Updated upstream
 classifire = DTreeClassifier(read_feature_train, read_labels_train) 
 labels_predicted = classifire.predict_all(read_feature_test, len(features_row) // 2)
 accuracy = classifire.accuracy(read_labels_test, labels_predicted)
@@ -302,3 +305,10 @@ RForest = RForestClassifire(read_feature_train, read_labels_train, 6, 3)
 estimators = RForest.build_forest()
 accuracy = RForest.accuracy(read_labels_test, estimators)
 print("forest accuracy: " + accuracy)
+=======
+classifier = DTreeClassifier(read_feature_train, read_labels_train)        
+labels_predicted = classifier.predict_all(read_feature_test, 3 * len(features_row) // 4)
+accuracy = classifier.accuracy(read_labels_test, labels_predicted)
+print(accuracy)
+plot_tree(classifier.tree)
+>>>>>>> Stashed changes
