@@ -367,12 +367,20 @@ def calculate_best_max_depth(data, labels, max_depth_values, validation_ratio=0.
     
     return best_depth
 
-classifier = DTreeClassifier(read_feature_train, read_labels_train, calculate_best_max_depth(read_feature_train, read_labels_train, depth_list_creator(features_row))) # create a decision tree classifier    
-labels_predicted = classifier.predict_all(read_feature_test, len(features_row) // 2) # predict the labels of the test data
-accuracy = classifier.accuracy(read_labels_test, labels_predicted) # calculate the accuracy of the model
-plot_tree(classifier.tree, accuracy) # draws the tree =))
 
-# RForest = RForestClassifier(read_feature_train, read_labels_train, 6, calculate_best_max_depth(read_feature_train, read_labels_train, depth_list_creator(features_row)))
-# estimators = RForest.build_forest()
-# accuracy = RForest.accuracy(read_labels_test, estimators)
-# print("forest accuracy: ", accuracy)
+user_input = int(input("Enter the mode you want to run the program in (1 for decision tree, 2 for random forest): "))
+
+if user_input == 1:
+    classifier = DTreeClassifier(read_feature_train, read_labels_train, calculate_best_max_depth(read_feature_train, read_labels_train, depth_list_creator(features_row))) # create a decision tree classifier    
+    labels_predicted = classifier.predict_all(read_feature_test, len(features_row) // 2) # predict the labels of the test data
+    accuracy = classifier.accuracy(read_labels_test, labels_predicted) # calculate the accuracy of the model
+    plot_tree(classifier.tree, accuracy) # draws the tree =))
+
+elif user_input == 2:
+    RForest = RForestClassifier(read_feature_train, read_labels_train, 6, calculate_best_max_depth(read_feature_train, read_labels_train, depth_list_creator(features_row)))
+    estimators = RForest.build_forest()
+    accuracy = RForest.accuracy(read_labels_test, estimators)
+    print("forest accuracy: ", accuracy)
+    
+else:
+    print("Invalid input")
